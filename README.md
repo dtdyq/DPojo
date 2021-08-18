@@ -63,54 +63,53 @@ public void testSuperClassGeneric() {
 ```java
 @Test
 public void testEnum() {
-	Color color = POJO.inst().manufacturer(Color.class);
-	System.out.println(color);
+    Color color = POJO.inst().manufacturer(Color.class);
+    System.out.println(color);
 }
 ```
 9.为特定属性名称或class类型提供指定值,可使用生成器或key、value方式实现
 ```java
 @Test
 public void testGenerator() {
-	User cat = POJO.inst().with(new Generator() {
-		@Override
-		public Type type() {
-			return User.class;
-		}
+    User cat = POJO.inst().with(new Generator() {
+	@Override
+	public Type type() {
+	    return User.class;
+	}
 
-		@Override
-		public Object value() {
-			User user = new User();
-			user.setAge((short) 111);
-			user.setName("alan");
-			return user;
-		}
+	@Override
+	public Object value() {
+	    User user = new User();
+	    user.setAge((short) 111);
+	    user.setName("alan");
+	    return user;
+	}
 	}).manufacturer(User.class);
 	System.out.println(cat);
 }
 
 @Test
 public void testSupplier() {
-	Cat<Dog> cat = POJO.inst().with(new Supplier() {
+    Cat<Dog> cat = POJO.inst().with(new Supplier() {
+	@Override
+	public String name() {
+	    return "t";
+	}
 
-		@Override
-		public String name() {
-			return "t";
-		}
-
-		@Override
-		public Object value() {
-			return new Dog();
-		}
+	@Override
+	public Object value() {
+	    return new Dog();
+	}
 	}).manufacturer(new TypeRef<Cat<Dog>>() { });
 	System.out.println(cat);
 }
 
 @Test
 public void testWithKV() {
-	POJO pojo = POJO.inst().with(Dog.class, new Dog()).with("name", "assigned");
-	Cat<Dog> cat = pojo.manufacturer(new TypeRef<Cat<Dog>>() { });
-	System.out.println(cat);
-	System.out.println(Object.class.getTypeName());
+    POJO pojo = POJO.inst().with(Dog.class, new Dog()).with("name", "assigned");
+    Cat<Dog> cat = pojo.manufacturer(new TypeRef<Cat<Dog>>() { });
+    System.out.println(cat);
+    System.out.println(Object.class.getTypeName());
 }
 ```
 工具类：
@@ -152,4 +151,10 @@ public class Garfield extends Cat<Dog> {
     private Color color;
 }
 
+@Data
+public class User {
+    private String name;
+
+    private short age;
+}
 ```
