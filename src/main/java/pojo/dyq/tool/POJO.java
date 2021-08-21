@@ -1,5 +1,7 @@
 package pojo.dyq.tool;
 
+import pojo.dyq.util.ReflectException;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -61,7 +63,7 @@ public final class POJO {
     private POJO() {
     }
 
-    public static int randInt(int min, int max) {
+    private static int randInt(int min, int max) {
         return new Random().nextInt((max - min) + 1) + min;
     }
 
@@ -89,37 +91,33 @@ public final class POJO {
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T manufacturer(TypeRef<T> ref) {
         try {
             ParameterizedType clz = (ParameterizedType) ref.getClass().getGenericSuperclass();
             return (T) generate(new TypeDesc(clz.getActualTypeArguments()[0]));
         } catch (Exception e) {
-
+            throw new ReflectException(e.getMessage());
         }
-        return null;
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T manufacturer(Class<T> clz) {
         try {
             return (T) generate(new TypeDesc(clz));
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ReflectException(e.getMessage());
         }
-        return null;
     }
 
     private Object generate(TypeDesc typeDesc)
         throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         Object o = clzValMap.getOrDefault(typeDesc.type, null);
         o = o == null ? fieldValMap.getOrDefault(typeDesc.typeName, null) : o;
-        o = o == null ? generators.stream()
-            .filter(gen -> gen.type() == typeDesc.type)
-            .findFirst()
-            .orElse(NULL_GEN)
-            .value() : o;
         o = o == null
-            ? typeDesc.typeName == null
-            ? null
+            ? generators.stream().filter(gen -> gen.type() == typeDesc.type).findFirst().orElse(NULL_GEN).value()
+            : o;
+        o = o == null ? typeDesc.typeName == null ? null
             : suppliers.stream().filter(s -> typeDesc.typeName.equals(s.name())).findFirst().orElse(NULL_SUP).value()
             : o;
         o = o == null ? fromBaseType(typeDesc.type) : o;
@@ -158,7 +156,7 @@ public final class POJO {
             }
             typeDesc.inst = obj;
             Type sc = clz.getGenericSuperclass();
-            while (!"java.lang.Object".equals(sc.getTypeName())) {
+            while (sc != null && !"java.lang.Object".equals(sc.getTypeName())) {
                 TypeDesc desc = parameterizedDesc(sc);
                 typeDesc.type = desc.type;
                 typeDesc.argsType.putAll(desc.argsType);
@@ -173,11 +171,11 @@ public final class POJO {
             ParameterizedType pType = (ParameterizedType) type;
             TypeDesc sub = new TypeDesc(pType.getRawType());
             Class<?> clz = (Class<?>) pType.getRawType();
-            List<TypeVariable<? extends Class<?>>> params = Arrays.stream(clz.getTypeParameters())
-                .collect(Collectors.toList());
+            List<TypeVariable<? extends Class<?>>> params =
+                Arrays.stream(clz.getTypeParameters()).collect(Collectors.toList());
             List<Type> acts = Arrays.stream(pType.getActualTypeArguments()).collect(Collectors.toList());
-            sub.argsType.putAll(
-                params.stream().collect(Collectors.toMap(Type::getTypeName, k -> acts.get(params.indexOf(k)))));
+            sub.argsType
+                .putAll(params.stream().collect(Collectors.toMap(Type::getTypeName, k -> acts.get(params.indexOf(k)))));
             return sub;
         }
         return new TypeDesc(type);
@@ -201,8 +199,8 @@ public final class POJO {
         if (type instanceof GenericArrayType) {
             GenericArrayType gType = (GenericArrayType) type;
             int len = randInt(minBound, maxBound);
-            Object array = Array.newInstance(
-                (Class<?>) ((ParameterizedType) gType.getGenericComponentType()).getRawType(), len);
+            Object array =
+                Array.newInstance((Class<?>) ((ParameterizedType) gType.getGenericComponentType()).getRawType(), len);
             for (int i = 0; i < len; i++) {
                 Array.set(array, i, generate(new TypeDesc(gType.getGenericComponentType())));
             }
@@ -250,6 +248,7 @@ public final class POJO {
         return type instanceof Class<?> && ((Class<?>) type).isEnum();
     }
 
+    @SuppressWarnings("unchecked")
     private Object generateEnum(Type type) {
         Class c = (Class<?>) type;
         List<String> keys = Arrays.stream(c.getEnumConstants()).map(Object::toString).collect(Collectors.toList());
@@ -257,7 +256,7 @@ public final class POJO {
     }
 
     private final static class TypeDesc {
-        public Object inst;
+        private Object inst;
 
         private Type type;
 

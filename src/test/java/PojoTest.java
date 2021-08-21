@@ -5,10 +5,16 @@ import pojo.dyq.tool.TypeRef;
 
 import org.junit.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 
 public class PojoTest {
+    public static void main(String[] args) throws IOException {
+        LocalDateTime pro = POJO.inst().manufacturer(LocalDateTime.class);
+        System.out.println(pro);
+    }
 
     @Test
     public void testBasicType() {
@@ -57,7 +63,7 @@ public class PojoTest {
             @Override
             public Object value() {
                 User user = new User();
-                user.setAge((short) 111);
+                user.setAge(111);
                 user.setName("alan");
                 return user;
             }
